@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import InputText from './components/InputText.vue'
+import SearchForm from '@/components/SearchForm.vue'
 </script>
 
 <template>
   <div>
-    <InputText />
+    <SearchForm />
   </div>
 </template>
 
