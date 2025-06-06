@@ -1,6 +1,4 @@
 import { fileURLToPath, URL } from 'node:url';
-
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
@@ -12,9 +10,7 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         additionalData: (content, filename) => {
-          // Don’t inject into main.scss to avoid duplicate @use
           if (filename.endsWith('main.scss')) return content;
-
           return `@use "@/assets/styles/colours" as *;\n${content}`;
         },
       },
