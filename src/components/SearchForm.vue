@@ -122,6 +122,7 @@ function buildTree(flatItems: CourseTreeNode[]): CourseTreeNode[] {
           :label="isSubmitting ? 'Searching...' : 'Search'"
           :disabled="isSubmitting"
           :type="'submit'"
+          :aria-label="'Search courses'"
         />
       </form>
       <section>
