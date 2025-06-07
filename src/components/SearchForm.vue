@@ -9,25 +9,79 @@ interface FormData {
   search: string;
 }
 
+interface CourseTreeItem {
+  id: number;
+  name: string;
+  parent_id: number;
+}
+
+type CourseTreeResponse = CourseTreeItem[];
+
 const formData = ref<FormData>({
   search: "",
 });
 
+const validationMessage = ref("");
+const isSubmitting = ref(false);
+const errorMessage = ref("");
+const resultsMessage = ref("");
 const resultsTree = ref<CourseTreeNode[] | null>(null);
 
-const tempData = [
-  {"id": 5, "name": "Chemical Kinetics", "parent_id": 6},
-  {"id": 3, "name": "Surface Chemistry", "parent_id": 1},
-  {"id": 1, "name": "Lab Experiment 1", "parent_id": 0},
-  {"id": 4, "name": "Lab 1 Summary", "parent_id": 1},
-  {"id": 2, "name": "Colloidal Solution (sol) of Starch", "parent_id": 3},
-  {"id": 6, "name": "Lab Experiment 2", "parent_id": 0},
-  {"id": 7, "name": "Colloidal Solution of Gum", "parent_id": 3}
-];
+function validateForm(): boolean {
+  validationMessage.value = "";
+  let valid = false;
 
-function submitFormWithTempData(): void {
-  resultsTree.value = buildTree(tempData);
+  if (formData.value.search.trim().length > 0) {
+    valid = true;
+  } else {
+    validationMessage.value = "Please enter a search term.";
+  }
+
+  return valid;
 }
+
+const submitForm = async (): Promise<CourseTreeResponse | null> => {
+  resultsTree.value = null;
+  isSubmitting.value = true;
+  errorMessage.value = "";
+  resultsMessage.value = "";
+
+  try {
+    const isValid = validateForm();
+
+    if (!isValid) {
+      return null;
+    }
+
+    const encodedQuery = encodeURIComponent(formData.value.search);
+    const url = `https://coursetreesearch-service-sandbox.dev.tophat.com/?query=${encodedQuery}`;
+
+    const response = await fetch(url);
+    console.log(response);
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data: CourseTreeResponse = await response.json();
+    resultsTree.value = buildTree(data);
+
+    if (Array.isArray(data) && data.length === 0) {
+      resultsMessage.value = "No results found.";
+    }
+    return data;
+
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      errorMessage.value = error.message;
+    } else {
+      errorMessage.value = "An unknown error occurred.";
+    }
+    return null;
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 
 function buildTree(flatItems: CourseTreeNode[]): CourseTreeNode[] {
   const idToNodeMap = new Map<number, CourseTreeNode>();
@@ -52,20 +106,26 @@ function buildTree(flatItems: CourseTreeNode[]): CourseTreeNode[] {
 
 <template>
   <section class="form-container">
-      <form @submit.prevent="submitFormWithTempData" class="form">
+    
+      <form @submit.prevent="submitForm" class="form">
         <InputText
           :inputId="'form-input'"
           :label="'Search Courses'"
           :type="'text'"
           @updateInputValue="(newValue: string) => (formData.search = newValue)"
         />
+        <section class="errors">
+          <p v-if="validationMessage">{{ validationMessage }}</p>
+          <p v-if="errorMessage">{{ errorMessage }}</p>
+        </section>
         <ButtonPrimary
-          :label="'Search'"
+          :label="isSubmitting ? 'Searching...' : 'Search'"
+          :disabled="isSubmitting"
           :type="'submit'"
         />
       </form>
-      <section v-if="resultsTree">
-        <ul>
+      <section>
+        <ul v-if="resultsTree">
           <TreeNode
             v-for="node in resultsTree"
             :key="node.id" 
@@ -73,6 +133,7 @@ function buildTree(flatItems: CourseTreeNode[]): CourseTreeNode[] {
             :depth="1"
           />
         </ul>
+        <p v-if="resultsMessage">{{ resultsMessage }}</p>
       </section>
   </section>
 </template>
