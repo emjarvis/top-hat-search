@@ -8,7 +8,7 @@ defineProps<{
 <template>
 <button
   :type="type"
-  class="btn btn-primary"
+  class="btn-primary"
 > 
   {{ label }}
 </button>
